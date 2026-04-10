@@ -10,6 +10,7 @@ A drop-in Docker service that automates Cloudflare Tunnel setup and runs the tun
 |---------|------------------------|--------|
 | Account | Cloudflare Tunnel      | Edit   |
 | Zone    | DNS                    | Edit   |
+| Zone    | Firewall Services      | Write  |
 
 **2. Create a `.env` file:**
 
@@ -18,6 +19,7 @@ CLOUDFLARE_API_TOKEN=your-api-token
 CLOUDFLARE_ACCOUNT_ID=your-account-id
 CLOUDFLARE_ZONE_ID=your-zone-id
 TUNNEL_NAME=my-tunnel
+API_KEY=sk-your-secret-key
 ```
 
 **3. Create `tunnel-config.json`** with your hostname-to-service mappings:
@@ -65,7 +67,8 @@ On container start:
 2. Creates a Cloudflare Tunnel via the API (or finds an existing one by name)
 3. Applies ingress rules from your config
 4. Creates/updates CNAME DNS records for each hostname
-5. Exec's into `cloudflared tunnel run` to keep the tunnel running
+5. If `API_KEY` is set, creates a WAF rule to enforce Bearer token auth at the edge
+6. Exec's into `cloudflared tunnel run` to keep the tunnel running
 
 Everything happens in a single container. The API setup runs once on startup, then `cloudflared` takes over as PID 1.
 
@@ -85,6 +88,7 @@ services:
         CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
         CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID}
         TUNNEL_NAME: ${TUNNEL_NAME}
+        API_KEY: ${API_KEY}
       volumes:
         - ./tunnel-config.json:/config/tunnel-config.json:ro
       restart: unless-stopped
